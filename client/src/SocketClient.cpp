@@ -1,5 +1,6 @@
 #include <iostream>
 #include <winsock.h>
+#include <string.h>
 
 #define PORT 9909
 
@@ -55,8 +56,18 @@ int main() {
 		socketExit();
 	} else {
         std::cout << "Connected to the client."  << std::endl;
+		char buff[255];
+		recv(nClientSocket, buff, 255, 0);
+		std::cout << buff << std::endl;
+		
+		while(1) {
+			fgets(buff, 256, stdin);
+			send(nClientSocket, buff, 256, 0);
+			recv(nClientSocket, buff, 256, 0);
+			std::cout << buff << std::endl;
+		}
     }
-
+	 
 
 	
 }

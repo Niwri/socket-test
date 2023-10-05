@@ -6,10 +6,62 @@
 struct sockaddr_in srv;
 fd_set fr, fw, fe;
 int nMaxFd;
+int nSocket;
+int nArrClient[5];
 
 void socketExit() {
 	WSACleanup();
 	exit(errno);
+}
+
+void processSend(int clientSocket) {
+	char buff[256+1] = {0,};
+	int nRet = recv(clientSocket, buff, 256, 0);
+	if(nRet < 0) {
+		std::cout << "Error receiving socket: " << clientSocket << std::endl;
+		closesocket(clientSocket);
+		for(int i = 0; i < 5; i++) {
+			if(nArrClient[i] == clientSocket) {
+				nArrClient[i] = 0;
+				break;
+			}
+		}
+	} else {
+		std::cout << "Socket " << clientSocket << ": " << buff << std::endl;
+		send(clientSocket, "Processed.", 11, 0);
+	}
+}
+
+void processRequest() {
+	if(FD_ISSET(nSocket, &fe)) {
+		// Handle Exception
+
+	} else if(FD_ISSET(nSocket, &fw)) {
+		// Write to somethin.
+
+	} else if(FD_ISSET(nSocket, &fr)) {
+		// Read somethin
+		int nLen = sizeof(struct sockaddr);
+		int nClientSocket = accept(nSocket, NULL, &nLen); 
+		if (nClientSocket > 0) {
+			int nIndex = 0;
+			for(nIndex = 0; nIndex < 5; nIndex++) 
+				if(nArrClient[nIndex] == 0) {
+					nArrClient[nIndex] = nClientSocket;
+					send(nClientSocket, "Got connection", 255, 0);
+					break;
+				}
+			if(nIndex == 5) {
+				std::cout << "No space for new connection" << std::endl;
+			}
+		}
+	} else {
+		for(int i = 0; i < 5; i++) {
+			if(FD_ISSET(nArrClient[i], &fr)) {
+				processSend(nArrClient[i]);
+			}
+		}
+	}
 }
 
 /*
@@ -35,7 +87,7 @@ int main() {
 	} else std::cout << "WSA has initialized" << std::endl;
 
 	// Initialize Socket using Stream Socket and TCP/IP
-	int nSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); // Socket Descriptor
+	nSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); // Socket Descriptor
 	if (nSocket < 0) { 
 		std::cout << "The socket has not opened" << std::endl; 
 		socketExit();
@@ -84,12 +136,20 @@ int main() {
 		FD_SET(nSocket, &fr);
 		FD_SET(nSocket, &fe);
 
+		for(int i = 0; i < 5; i++) {
+			if(nArrClient[i] != 0) {
+				FD_SET(nArrClient[i], &fr);
+				FD_SET(nArrClient[i], &fe);
+			}
+		}
+
 		// Keep waiting for new requests and proceed as per requests
 		nRet = select(nMaxFd + 1, &fr, &fw, &fe, &tv); 
 		if (nRet > 0) {
 			// When Someone sends a request to socket over dedicated coonnection
 			std::cout << "Data on port. Processing." << std::endl;
-		}
+			processRequest();
+		} 
 		else if (nRet == 0) std::cout << "Nothing on port: " << PORT << std::endl; 
 		else  { 
 			std::cout << "Select requests failed. Error Code: " << nRet << std::endl; 
