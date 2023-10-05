@@ -2,32 +2,12 @@
 #include <winsock.h>
 
 #define PORT 9909
-#define CONNECTION_LIMIT 5
 
-class SocketServer {
-
-    private:
-        static struct sockaddr_in srv;
-        static fd_set fr, fw, fe;
-        static int nMaxFd;
-        static int nSocket;
-        static int nArrClient[CONNECTION_LIMIT];
-        static WSADATA ws;
-
-        static void socketError(); /* Cleans program before exiting */
-        static void processRequest(); /* Processes incoming requests from client sockets */
-        static void handleRequest(int clientSocket); /* Handles request after receiving registered client socket*/
-
-        /* Add further functions to handle requests */
-        
-    public:
-        static void init(int family, int type, int protocol, int port, int addr);
-        static void bindLocal();
-        static void pollRequests(int maxQueue);
-
-}
-
-
+struct sockaddr_in srv;
+fd_set fr, fw, fe;
+int nMaxFd;
+int nSocket;
+int nArrClient[5];
 
 void socketExit() {
 	WSACleanup();
